@@ -5,6 +5,8 @@
 #include <stdexcept>
 #include <iomanip>
 #include <math.h>
+#include <set>
+#include <fstream>
 #include "Graph.h"
 using namespace std;
 
@@ -24,9 +26,9 @@ Graph::Graph(int init_nv, int init_i, int init_vne)
         << init_nv << " vertices\n"
         << "every new vertex with " << init_vne
         << " edges\ningredients: ";
-    if (init_i & ING_GROWTH == ING_GROWTH)
+    if ((init_i & ING_GROWTH) == ING_GROWTH)
         cout << "GROWTH; ";
-    if (init_i & ING_PREF == ING_PREF)
+    if ((init_i & ING_PREF) == ING_PREF)
         cout << "PREFERENTIAL ATTACHMENT; ";
     cout << endl << endl;
 
@@ -36,7 +38,7 @@ Graph::Graph(int init_nv, int init_i, int init_vne)
 }
 
 void Graph::grow() {
-    if (this->ingredients & ING_GROWTH == ING_GROWTH) {
+    if ((this->ingredients & ING_GROWTH) == ING_GROWTH) {
         grow_normal();
     } else {
         grow_stationary();
@@ -44,7 +46,25 @@ void Graph::grow() {
 }
 
 void Graph::output(string file_path) const {
-    // pass
+    multiset<size_t, less<int>> degrees;
+    for (int i = 0; i < this->num_vertices; ++i)
+        degrees.insert(this->adj_list[i]->size());
+
+    // distinc degrees
+    set<size_t, less<int>> dd(
+        degrees.cbegin(), 
+        degrees.cend()
+    );
+
+    ofstream writer(file_path, ios::out);
+    if (!writer) {
+        cerr << "[error] failed to open file" << endl;
+        return;
+    }
+
+    writer << "degree,count\n";
+    for (auto i = dd.cbegin(); i != dd.cend(); ++i)
+        writer << *i << "," << degrees.count(*i) << "\n";
 }
 
 int Graph::get_num_vertices() const {
@@ -53,15 +73,19 @@ int Graph::get_num_vertices() const {
 
 void Graph::desc() const {
     cout << get_num_vertices() << " vertices here\n";
+
     int width = ceil(log10(this->num_vertices)) + 1;
     for (int i = 0; i < this->num_vertices; ++i) {
         cout << "v" << setw(width) << left << i;
+
         vector<int>* pneighbors = this->adj_list[i];
         if (pneighbors->size()) cout << "<-  ";
         for (size_t i = 0; i < pneighbors->size(); ++i)
             cout << "v" << setw(width) << (*pneighbors)[i] << " ";
+
         cout << "\n";
     }
+
     cout << endl;
 }
 
@@ -71,6 +95,7 @@ void Graph::grow_normal() {
     int vnew = num_vertices;
     this->adj_list[vnew] = new vector<int>;
 
+    // exclude vertices already connected with `vnew`
     vector<int> exceptions;
     for (int i = 0; i < this->vnew_num_edges; ++i) {
         int vtarget = roulette_select(exceptions);
@@ -81,31 +106,47 @@ void Graph::grow_normal() {
     num_vertices++;
 
     // ------ log begin ------
-    
-    cout << "v" << vnew << " is added" << endl;
-    desc();
+    if (vnew % 1000 == 0)
+        cout << "v" << vnew << " is added" << endl;
+    // desc();
 
     // ------ log end ------
 }
 
 void Graph::grow_stationary() {
-    int v1 = rand() % this->num_vertices;
+    // randomly choose `vv` to add edge
+    int vv = rand() % this->num_vertices;
 
-    int vnew = 0;
+    // exclude `vv` itself and its neighbors
+    vector<int> exceptions{vv};
+    copy(
+        this->adj_list[vv]->cbegin(), 
+        this->adj_list[vv]->cend(),
+        exceptions.begin() + 1
+    );
+    int vnew = roulette_select(exceptions);
+    if (vnew != -1)
+        add_edge(vv, vnew);
 
-    // todo: whatever
+    // ------ log begin ------
     
-    add_edge(v1, vnew);
+    cout << "growing stationarily" << endl;
+    // desc();
+
+    // ------ log end ------
 }
 
 int Graph::roulette_select(const vector<int> & exceptions) const {
-    const vector<int> & es = exceptions;
-    int with_pref = this->ingredients & ING_PREF == ING_PREF;
+    if ((int)exceptions.size() == this->num_vertices) {
+        cerr << "[error] all vertices in exception list" << endl;
+        return -1;
+    }
+    int with_pref = (this->ingredients & ING_PREF) == ING_PREF;
 
     vector<int> roulette(this->num_vertices, 0);
     roulette[0] = (with_pref ? adj_list[0]->size() : 0) + 1;
     for (int i = 1; i < this->num_vertices; ++i) {
-        if (find(es.begin(), es.end(), i) == es.end())
+        if (find(exceptions.begin(), exceptions.end(), i) == exceptions.end())
             // if i not in `exceptions`
             roulette[i] = roulette[i - 1] 
                 + (with_pref ? adj_list[i]->size() : 0) + 1;
@@ -113,13 +154,7 @@ int Graph::roulette_select(const vector<int> & exceptions) const {
             roulette[i] = roulette[i - 1];
     }
 
-    int total_sum = roulette[this->num_vertices - 1];
-    if (total_sum == 1) {
-        cerr << "[error] all vertices in exception list" << endl;
-        return -1;
-    }
-
-    int roulette_picker = rand() % total_sum;
+    int roulette_picker = rand() % roulette[this->num_vertices - 1];
 
     int lucky_dog = -1;
     for (int i = 0; i < this->num_vertices; ++i)
@@ -131,8 +166,8 @@ int Graph::roulette_select(const vector<int> & exceptions) const {
     // ------ log begin ------
 
     // cout << "roulette begins";
-    // if (es.size()) cout << "\nexceptions: ";
-    // for (int e : es)
+    // if (exceptions.size()) cout << "\nexceptions: ";
+    // for (int e : exceptions)
     //     cout << e << " ";
     // cout << "\n#\tdegree\tstick\n";
 
@@ -153,7 +188,7 @@ int Graph::roulette_select(const vector<int> & exceptions) const {
     return lucky_dog;
 }
 
-void Graph::add_edge(int v1, int v2) {
-    this->adj_list[v1]->push_back(v2);
-    this->adj_list[v2]->push_back(v1);
+void Graph::add_edge(int v_, int _v) {
+    this->adj_list[v_]->push_back(_v);
+    this->adj_list[_v]->push_back(v_);
 }
