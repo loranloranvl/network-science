@@ -34,7 +34,7 @@ Graph::Graph(int init_nv, int init_i, int init_vne)
 
     // ------ log end ------
     
-    srand(233);
+    srand(23333);
 }
 
 void Graph::grow() {
@@ -106,9 +106,8 @@ void Graph::grow_normal() {
     num_vertices++;
 
     // ------ log begin ------
-    if (vnew % 1000 == 0)
-        cout << "v" << vnew << " is added" << endl;
-    // desc();
+
+    desc();
 
     // ------ log end ------
 }
@@ -131,7 +130,7 @@ void Graph::grow_stationary() {
     // ------ log begin ------
     
     cout << "growing stationarily" << endl;
-    // desc();
+    desc();
 
     // ------ log end ------
 }
@@ -157,28 +156,38 @@ int Graph::roulette_select(const vector<int> & exceptions) const {
     int roulette_picker = rand() % roulette[this->num_vertices - 1];
 
     int lucky_dog = -1;
-    for (int i = 0; i < this->num_vertices; ++i)
-        if (roulette_picker < (roulette[i])) {
-            lucky_dog = i;
-            break;
-        }
+
+    // binary search
+    int begin = 0;
+    int end = this->num_vertices;
+    int middle = (begin + end) / 2;
+
+    while (begin < end) {
+        if (roulette_picker < roulette[middle])
+            end = middle;
+        else
+            begin = middle + 1;
+        middle = (begin + end) / 2;
+    }
+
+    lucky_dog = begin;
 
     // ------ log begin ------
 
-    // cout << "roulette begins";
-    // if (exceptions.size()) cout << "\nexceptions: ";
-    // for (int e : exceptions)
-    //     cout << e << " ";
-    // cout << "\n#\tdegree\tstick\n";
+    cout << "roulette begins";
+    if (exceptions.size()) cout << "\nexceptions: ";
+    for (int e : exceptions)
+        cout << e << " ";
+    cout << "\n#\tdegree\tstick\n";
 
-    // for (int i = 0; i < this->num_vertices; ++i)
-    //     cout << "v" << i << "\t" 
-    //         << this->adj_list[i]->size() << "\t"
-    //         << roulette[i] << "\n";
+    for (int i = 0; i < this->num_vertices; ++i)
+        cout << "v" << i << "\t" 
+            << this->adj_list[i]->size() << "\t"
+            << roulette[i] << "\n";
 
-    // cout << "roulette picker falls on " << roulette_picker 
-    //     << "\nv" << lucky_dog << " is selected preferentially"
-    //     << endl << endl;
+    cout << "roulette picker falls on " << roulette_picker 
+        << "\nv" << lucky_dog << " is selected preferentially"
+        << endl << endl;
 
     // ------ log end ------
 

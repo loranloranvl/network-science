@@ -5,7 +5,7 @@
 #include <vector>
 #include <array>
 
-const int GRAPH_SIZE = 2e5;
+const int GRAPH_SIZE = 3e5;
 
 // ingredient: GROWTH
 const int ING_GROWTH = 0b01;
