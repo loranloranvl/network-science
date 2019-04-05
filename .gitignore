@@ -5,6 +5,7 @@
 *.zip
 __MACOSX/
 foo.*
+*.doc
 *.docx
 article/
 *.rar
