@@ -1,19 +1,23 @@
 #include <iostream>
 #include <iomanip>
-#include <math.h>
 #include <stdlib.h>
 #include <algorithm>
 #include <set>
+#include <cmath>
+#include <numeric>
+#include <cassert>
+#include <queue>
 #include "WsGraph.h"
 using namespace std;
 
-WsGraph::WsGraph(double ws_p) : p(ws_p) {
-    srand(233);
+WsGraph::WsGraph(double ws_p) 
+    : p(ws_p), t(0), Cp(0), Lp(0), Tp(0)
+{
     init_regular();
     for (int i = 0; i < ws_N * ws_K / 2; ++i) {
         reconnect(i % ws_N, (i + i / ws_N + 1) % ws_N);
     }
-    desc();
+    init_virus();
 }
 
 void WsGraph::desc() const {
@@ -24,8 +28,8 @@ void WsGraph::desc() const {
         cout << "| " << setw(2) << left << pv->status;
 
         if (pv->pneighbors->size()) cout << " <-  ";
-        for (size_t i = 0; i < pv->pneighbors->size(); ++i) 
-            cout << "v" << setw(width) << *next(pv->pneighbors->begin(), i) << " ";
+        for (size_t j = 0; j < pv->pneighbors->size(); ++j) 
+            cout << "v" << setw(width) << *next(pv->pneighbors->begin(), j) << " ";
 
         cout << "\n";
     }
@@ -63,11 +67,14 @@ void WsGraph::reconnect(int va, int vb) {
     if ((double)rand() / (double)RAND_MAX > this->p)
         return;
     remove_edge(va, vb);
+
+    // exceptions
     set<int>* pe = new set<int>(
         this->adj[va]->pneighbors->begin(),
         this->adj[va]->pneighbors->end()
     );
     pe->insert(va);
+
     int vc = roulette_select(pe);
     add_edge(va, vc);
 }
@@ -83,7 +90,6 @@ int WsGraph::roulette_select(set<int>* pexceptions) const {
     roulette[0] = pe->find(0) == pe->end() ? 1 : 0;
     for (int i = 1; i < ws_N; ++i) {
         if (pe == nullptr || pe->find(i) == pe->end())
-            // if i not in `exceptions`
             roulette[i] = roulette[i - 1] + 1;
         else
             roulette[i] = roulette[i - 1];
@@ -108,26 +114,127 @@ int WsGraph::roulette_select(set<int>* pexceptions) const {
 
     lucky_dog = begin;
 
-    // ------ log begin ------
-
-    // cout << "roulette begins";
-    // if (pe->size()) cout << "\nexceptions: ";
-    // for (int e : *pe)
-    //     cout << e << " ";
-    // cout << "\n#\tstick\n";
-
-    // for (int i = 0; i < ws_N; ++i)
-    //     cout << "v" << i << "\t" 
-    //         << roulette[i] << "\n";
-
-    // cout << "roulette picker falls on " << roulette_picker 
-    //     << "\nv" << lucky_dog << " is selected"
-    //     << endl << endl;
-
-    // ------ log end ------
-
     if (lucky_dog == -1)
         throw runtime_error("roulette failed");
 
     return lucky_dog;
+}
+
+void WsGraph::cal_props() {
+    /* --- characteristic path length L(p) --- */
+
+    // shortest path length
+    array<int, ws_N> spl;
+
+    for (int v = 0; v < ws_N; ++v) {
+        for (int i = 0; i < ws_N; ++i)
+            spl[i] = -1;
+        spl[v] = 0;
+
+        bfs_lp(v, spl);
+
+        if (spl.end() != find(
+                spl.begin(),
+                spl.end(),
+                -1
+            )) {
+            throw runtime_error("[error] bfs_lp failed");
+        }
+
+        double avg = accumulate(
+            spl.begin(), 
+            spl.end(), 
+            0.0
+        ) / (ws_N - 1); // exclude 0
+
+        this->Lp = (v * this->Lp + avg) / (v + 1);
+    }
+
+    /* --- clustering coefficient C(p) --- */
+    for (int v = 0; v < ws_N; ++v) {
+        int edge_num_neighbors = 0;
+        set<int>* pn = this->adj[v]->pneighbors;
+
+        for (auto it1 = pn->cbegin(); it1 != pn->cend(); ++it1) {
+            for (auto it2 = next(it1, 1); it2 != pn->cend(); ++it2) {
+
+                set<int>* pn1 = this->adj[*it1]->pneighbors;
+                if (pn1->find(*it2) != pn1->end())
+                    ++edge_num_neighbors;
+
+            }
+        }
+
+        int edge_num_max = pn->size() * (pn->size() - 1) / 2;
+        double fraction = 1.0 * edge_num_neighbors / edge_num_max;
+        this->Cp = (v * this->Cp + fraction) / (v + 1);
+    }
+}
+
+void WsGraph::bfs_lp(int center, 
+        array<int, ws_N>& path_lengths) {
+    array<int, ws_N>& spl = path_lengths;
+    queue<int> queue_vertices;
+    do {
+        for (
+            auto it = this->adj[center]->pneighbors->cbegin();
+            it != this->adj[center]->pneighbors->cend();
+            ++it
+        ) {
+            if (spl[*it] == -1) {
+                spl[*it] = spl[center] + 1;
+                queue_vertices.push(*it);
+            }
+        }
+        center = queue_vertices.front();
+        queue_vertices.pop();
+    } while (!queue_vertices.empty());
+}
+
+void WsGraph::bfs_virus(int center) {
+    queue<int> queue_vertices;
+    do {
+        for (
+            auto it = this->adj[center]->pneighbors->cbegin();
+            it != this->adj[center]->pneighbors->cend();
+            ++it
+        ) {
+            if (this->adj[*it]->status == 1) {
+                this->adj[*it]->status = 0;
+                queue_vertices.push(*it);
+            }
+        }
+        this->adj[center]->status = -1;
+        center = queue_vertices.front();
+        queue_vertices.pop();
+    } while (!queue_vertices.empty());
+}
+
+GraphProp* WsGraph::dump() const {
+    GraphProp* pgp = new GraphProp;
+    pgp->p = this->p;
+    pgp->Cp = this->Cp;
+    pgp->Lp = this->Lp;
+    return pgp;
+}
+
+void WsGraph::init_virus() {
+    int r_begin = 0.1;
+    int r_end = 0.4;
+    int r_step = (r_end - r_begin) / ws_R_SAMPLE_SIZE;
+    for (int i = 0; i < ws_R_SAMPLE_SIZE; ++i) {
+        this->r[i] = r_begin + i * r_step;
+        this->max_infect[i] = 0;
+    }
+}
+
+void WsGraph::spread() {
+    for (int i = 0; i < ws_R_SAMPLE_SIZE; ++i) {
+        this->adj[0]->status = 0;
+        bfs_virus(0);
+        for (int v = 0; v < ws_N; ++v) {
+            if (this->adj[v]->status == -1)
+                this->max_infect[i] += 1;
+        }
+    }
 }

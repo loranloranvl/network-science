@@ -8,8 +8,8 @@
 
 // start with a ring of `WSN` vertices
 // each connected to its `WSK` nearest neighbours by undirected edges
-const int ws_N = 20;
-const int ws_K = 4;
+const int ws_N = 1000;
+const int ws_K = 10;
 const int ws_R_SAMPLE_SIZE = 100;
 
 
@@ -26,6 +26,12 @@ struct Vertex{
 
 };
 
+struct GraphProp{
+    double p;
+    double Cp;
+    double Lp;
+};
+
 
 class WsGraph {
 
@@ -36,8 +42,8 @@ public:
     // show graph information
     void desc() const;
 
-    // write necessary data to file
-    void dump() const;
+    // get graph properties
+    GraphProp* dump() const;
 
 private:
     // initialize as a regular network
@@ -51,14 +57,25 @@ private:
     // namely C(p) and L(p)
     void cal_props();
 
+    // breadth first search
+    // generates shortest path lengths
+    void bfs_lp(int center, 
+        std::array<int, ws_N>& path_lengths);
+
+    // breadth first search
+    // for virus spreading
+    void bfs_virus(int center);
+
     // prepare for virus infection
     void init_virus();
+
+    void spread();
+
+    void is_infecting();
 
     // randomly select a vertex 
     // vetices in `exceptions` will not be considered
     int roulette_select(std::set<int>* pexceptions) const;
-
-    void spread();
 
     void add_edge(int v_, int _v);
 
@@ -72,19 +89,19 @@ private:
     int t;
 
     // clustering coefficient C(p)
-    int Cp;
+    double Cp;
 
     // characteristic path length L(p)
-    int Lp;
+    double Lp;
 
     // the time required for global infection T(p) with r = 1
     int Tp;
 
     // probability of infection
-    int r[ws_R_SAMPLE_SIZE];
+    std::array<int, ws_R_SAMPLE_SIZE> r;
 
     // maximumly infected corresponding to `r`
-    int max_infect[ws_R_SAMPLE_SIZE];
+    std::array<int, ws_R_SAMPLE_SIZE> max_infect;
 
     // adjacency list
     std::array<Vertex*, ws_N> adj;
