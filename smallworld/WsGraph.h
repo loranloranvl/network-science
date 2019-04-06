@@ -30,6 +30,8 @@ struct GraphProp{
     double p;
     double Cp;
     double Lp;
+    double Tp;
+    double r_half;
 };
 
 
@@ -64,7 +66,7 @@ private:
 
     // breadth first search
     // for virus spreading
-    void bfs_virus(int center);
+    void bfs_virus(int center, double infect_rate);
 
     // prepare for virus infection
     void init_virus();
@@ -85,9 +87,6 @@ private:
     // we reconnect this edge to another vertex
     double p;
 
-    // time `t` for virus spreading
-    int t;
-
     // clustering coefficient C(p)
     double Cp;
 
@@ -95,10 +94,13 @@ private:
     double Lp;
 
     // the time required for global infection T(p) with r = 1
-    int Tp;
+    double Tp;
 
     // probability of infection
-    std::array<int, ws_R_SAMPLE_SIZE> r;
+    std::array<double, ws_R_SAMPLE_SIZE> r;
+
+    // critical infection rate
+    double r_half;
 
     // maximumly infected corresponding to `r`
     std::array<int, ws_R_SAMPLE_SIZE> max_infect;

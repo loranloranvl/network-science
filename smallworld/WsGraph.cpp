@@ -7,17 +7,20 @@
 #include <numeric>
 #include <cassert>
 #include <queue>
+#include <fstream>
 #include "WsGraph.h"
 using namespace std;
 
 WsGraph::WsGraph(double ws_p) 
-    : p(ws_p), t(0), Cp(0), Lp(0), Tp(0)
+    : p(ws_p), Cp(0), Lp(0), Tp(0)
 {
     init_regular();
     for (int i = 0; i < ws_N * ws_K / 2; ++i) {
         reconnect(i % ws_N, (i + i / ws_N + 1) % ws_N);
     }
+    cal_props();
     init_virus();
+    spread();
 }
 
 void WsGraph::desc() const {
@@ -64,7 +67,7 @@ void WsGraph::remove_edge(int v_, int _v) {
 }
 
 void WsGraph::reconnect(int va, int vb) {
-    if ((double)rand() / (double)RAND_MAX > this->p)
+    if (1.0 * rand() / RAND_MAX > this->p)
         return;
     remove_edge(va, vb);
 
@@ -148,6 +151,7 @@ void WsGraph::cal_props() {
         ) / (ws_N - 1); // exclude 0
 
         this->Lp = (v * this->Lp + avg) / (v + 1);
+        if (v == 0) this->Tp = avg;
     }
 
     /* --- clustering coefficient C(p) --- */
@@ -191,23 +195,30 @@ void WsGraph::bfs_lp(int center,
     } while (!queue_vertices.empty());
 }
 
-void WsGraph::bfs_virus(int center) {
+void WsGraph::bfs_virus(int center, double infect_rate) {
     queue<int> queue_vertices;
-    do {
+    // cout << "bfs init\n*it\tcenter\tr\tq_size\n";
+    // cout << "null\t" << center << '\t' << infect_rate
+        // << '\t' << queue_vertices.size() << '\n';
+    while (true) {
         for (
             auto it = this->adj[center]->pneighbors->cbegin();
             it != this->adj[center]->pneighbors->cend();
             ++it
         ) {
-            if (this->adj[*it]->status == 1) {
+            if (this->adj[*it]->status == 1
+                    && 1.0 * rand() / RAND_MAX < infect_rate) {
                 this->adj[*it]->status = 0;
                 queue_vertices.push(*it);
             }
+            // cout << *it << '\t' << center << '\t' << infect_rate
+                // << '\t' << queue_vertices.size() << '\n';
         }
         this->adj[center]->status = -1;
+        if (queue_vertices.empty()) break;
         center = queue_vertices.front();
         queue_vertices.pop();
-    } while (!queue_vertices.empty());
+    }
 }
 
 GraphProp* WsGraph::dump() const {
@@ -215,13 +226,15 @@ GraphProp* WsGraph::dump() const {
     pgp->p = this->p;
     pgp->Cp = this->Cp;
     pgp->Lp = this->Lp;
+    pgp->Tp = this->Tp;
+    pgp->r_half = this->r_half;
     return pgp;
 }
 
 void WsGraph::init_virus() {
-    int r_begin = 0.1;
-    int r_end = 0.4;
-    int r_step = (r_end - r_begin) / ws_R_SAMPLE_SIZE;
+    double r_begin = 0.1;
+    double r_end = 0.4;
+    double r_step = (r_end - r_begin) / ws_R_SAMPLE_SIZE;
     for (int i = 0; i < ws_R_SAMPLE_SIZE; ++i) {
         this->r[i] = r_begin + i * r_step;
         this->max_infect[i] = 0;
@@ -231,10 +244,17 @@ void WsGraph::init_virus() {
 void WsGraph::spread() {
     for (int i = 0; i < ws_R_SAMPLE_SIZE; ++i) {
         this->adj[0]->status = 0;
-        bfs_virus(0);
+        bfs_virus(0, this->r[i]);
         for (int v = 0; v < ws_N; ++v) {
             if (this->adj[v]->status == -1)
                 this->max_infect[i] += 1;
+            this->adj[v]->status = 1;
+        }
+    }
+    for (int i = 0; i < ws_R_SAMPLE_SIZE; ++i) {
+        if (this->max_infect[i] > ws_N / 2) {
+            this->r_half = this->r[i];
+            break;
         }
     }
 }

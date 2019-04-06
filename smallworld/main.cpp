@@ -8,35 +8,30 @@ void model();
 void test();
 
 int main() {
-    test();
-    // model();
+    model();
     
     return 0;
 }
 
 void model() {
-    srand(2333);
+    srand(233);
     double p_begin = 0;
     double p_distance = -4;
-    double p_sticks = 16;
+    double p_sticks = 20;
     double p_step = p_distance / p_sticks;
     ofstream writer("data/graph-properties.csv", ios::out);
-    writer << "p,Cp,Lp\n";
+    writer << "p,Cp,Lp,Tp,rhalf\n";
     for (int i = 0; i < p_sticks; ++i) {
         WsGraph my_graph(pow(10, (p_begin + p_step) * i));
-        // GraphProp* pgp = my_graph.dump();
+        GraphProp* pgp = my_graph.dump();
         cout << i << endl;
-        // writer << pgp->p << ',' << pgp->Cp << ',' 
-            // << pgp->Lp << '\n';
+        writer << pgp->p << ',' << pgp->Cp << ',' 
+            << pgp->Lp << ',' << pgp->Tp << ',' 
+            << pgp->r_half << '\n';
     }
     WsGraph my_graph(0);
-    // GraphProp* pgp = my_graph.dump();
-    // writer << pgp->p << ',' << pgp->Cp << ',' 
-        // << pgp->Lp << '\n';
-}
-
-void test() {
-    srand(233);
-    WsGraph wg(0.5);
-    cout << wg.dump()->Lp << endl;
+    GraphProp* pgp = my_graph.dump();
+    writer << pgp->p << ',' << pgp->Cp << ',' 
+        << pgp->Lp << ',' << pgp->Tp << ',' 
+        << pgp->r_half << '\n';
 }
