@@ -13,3 +13,13 @@ Albert-Laszlo Barabasi and Reka Albert
 g++ main.cpp Graph.cpp -o main -std=c++11
 main
 ```
+
+## Collective dynamics of 'small-world' networks
+Duncan J. Watts* and Steven H. Strogatz
+
+### Folder
+/smallworld
+
+### Usage
+g++ main.cpp WsGraph.cpp -o main -std=c++11
+main
