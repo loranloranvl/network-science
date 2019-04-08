@@ -1,6 +1,7 @@
 # Description  
 This project is for studying papers about network-science.  
 We read through certain papers, think about their algorithms and construct C++ implementations accordingly.  
+The details of each implementation are shown in the pdf reports in each directory.
 
 ## Emergence of Scaling in Random Networks  
 Albert-Laszlo Barabasi and Reka Albert
