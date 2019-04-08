@@ -197,9 +197,6 @@ void WsGraph::bfs_lp(int center,
 
 void WsGraph::bfs_virus(int center, double infect_rate) {
     queue<int> queue_vertices;
-    // cout << "bfs init\n*it\tcenter\tr\tq_size\n";
-    // cout << "null\t" << center << '\t' << infect_rate
-        // << '\t' << queue_vertices.size() << '\n';
     while (true) {
         for (
             auto it = this->adj[center]->pneighbors->cbegin();
@@ -211,8 +208,6 @@ void WsGraph::bfs_virus(int center, double infect_rate) {
                 this->adj[*it]->status = 0;
                 queue_vertices.push(*it);
             }
-            // cout << *it << '\t' << center << '\t' << infect_rate
-                // << '\t' << queue_vertices.size() << '\n';
         }
         this->adj[center]->status = -1;
         if (queue_vertices.empty()) break;

@@ -17,10 +17,10 @@ rhalf = df['rhalf'][:-1]
 
 def draw_prop():
     plt.figure()
-    plt.scatter(p, Cp/C0, marker='^', facecolors='none', 
-        edgecolors=colors[0], label=r'$C(p)\ /\ C(0)$')
     plt.scatter(p, Lp/L0, marker='d', facecolors='none', 
         edgecolors=colors[1], label=r'$L(p)\ /\ L(0)$')
+    plt.scatter(p, Cp/C0, marker='^', facecolors='none', 
+        edgecolors=colors[0], label=r'$C(p)\ /\ C(0)$')
 
 
 def draw_rhalf():
@@ -32,10 +32,10 @@ def draw_rhalf():
 
 def draw_tp():
     plt.figure()
-    plt.scatter(p, Tp/T0, marker='8', facecolors='none', 
-        edgecolors=colors[3], label=r'$T(p)\ /\ T(0)$')
     plt.scatter(p, Lp/L0, marker='d', facecolors='none', 
         edgecolors=colors[1], label=r'$L(p)\ /\ L(0)$')
+    plt.scatter(p, Tp/T0, marker='8', facecolors='none', 
+        edgecolors=colors[3], label=r'$T(p)\ /\ T(0)$')
 
 
 def x_axis():
@@ -47,13 +47,13 @@ def x_axis():
 
 draw_prop()
 x_axis()
-plt.savefig('prop.png')
+plt.savefig('prop.eps', format='eps', dpi=1000)
 draw_rhalf()
 x_axis()
-plt.savefig('rhalf.png')
+plt.savefig('rhalf.eps', format='eps', dpi=1000)
 draw_tp()
 x_axis()
-plt.savefig('tp.png')
+plt.savefig('tp.eps', format='eps', dpi=1000)
 
 
 # plt.show()

@@ -5,11 +5,9 @@
 using namespace std;
 
 void model();
-void test();
 
 int main() {
     model();
-    
     return 0;
 }
 
@@ -24,7 +22,7 @@ void model() {
     for (int i = 0; i < p_sticks; ++i) {
         WsGraph my_graph(pow(10, (p_begin + p_step) * i));
         GraphProp* pgp = my_graph.dump();
-        cout << i << endl;
+        cout << i << " / " << p_sticks << endl;
         writer << pgp->p << ',' << pgp->Cp << ',' 
             << pgp->Lp << ',' << pgp->Tp << ',' 
             << pgp->r_half << '\n';
