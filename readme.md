@@ -21,5 +21,7 @@ Duncan J. Watts* and Steven H. Strogatz
 /smallworld
 
 ### Usage
+```
 g++ main.cpp WsGraph.cpp -o main -std=c++11
 main
+```
